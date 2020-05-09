@@ -1,40 +1,78 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html>
+  <meta http-equiv="content-type" charset="utf-8">
+    <head>
+        <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/5.0.1/firebase-database.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
+    </head>
+    <body>
+        <h1>せっかちチャット(β)</h1>
+        <div>
+            <br>
+            <ul>なにこれ
+              <li>今このページにアクセスしている人達とチャットができる（したければ）</li>
+              <li>Enterを押す前のメッセージは入力中に表示される</li>
+              <li>Enterを押すとメッセージは履歴に移る</li>
+              <li>履歴は永続する（見られたくないものは書かないこと）</li>
+            </ul>
+            <input type="text" placeholder="お名前" id="input-name">
+            <input type="text" placeholder="メッセージを入れてEnter" id="input-message">
+            <p id="message"></p>
+            <h3>入力中</h3>
+            <pre id="editingMessage"></pre>
+            <h3>履歴</h3>
+            <pre id="sendMessage"></pre>
+        </div>
 
-<head>
-  <meta charset="UTF-8">
-  <title>Elm + Websockets</title>
-  <script type="text/javascript" src="elm.js"></script>
-</head>
+        <script>
+        var firebaseConfig = {
+          apiKey: "AIzaSyDRE9wiuo6489xKTvbeUAaoc66FtBV6LJk",
+          authDomain: "syagaworks-a7499.firebaseapp.com",
+          databaseURL: "https://syagaworks-a7499.firebaseio.com",
+          projectId: "syagaworks-a7499",
+          storageBucket: "syagaworks-a7499.appspot.com",
+          messagingSenderId: "416444054694",
+          appId: "1:416444054694:web:717e2b3d720e43509b4867",
+          measurementId: "G-HEPPF6F9MB"
+        };
+          // Initialize Firebase
+          firebase.initializeApp(firebaseConfig);
 
-<body>
-	<div id="myapp"></div>
-</body>
+            var userName="";
+            var thisUserRef;
 
-<script type="text/javascript">
+            var usersRef=firebase.database().ref().child("users");
+            var sendMessageRef=firebase.database().ref().child("sendMessage");            // $('#nextPage').click(function(){
 
-// Start the Elm application.
-var app = Elm.Main.init({
-	node: document.getElementById('myapp')
-});
+            $('#input-name').change(function(){
+              userName=$('#input-name').val();
+              thisUserRef=firebase.database().ref().child("users").child(userName);
+              thisUserRef.set($('#input-message').val());
+            });
 
-// Create your WebSocket.
-var socket = new WebSocket('wss://echo.websocket.org');
+            $('#input-message').keydown(function(e){
+              $('#message').text($('#input-name').val() +"："+ $('#input-message').val());
+              thisUserRef.set($('#input-message').val());
+              if (e.keyCode===13) {
+                sendMessageRef.push({
+                  m: $('#input-name').val()+"："+$('#input-message').val()
+                });
+                $('#input-message').val("");
+              }
+            });
 
-// When a command goes to the `sendMessage` port, we pass the message
-// along to the WebSocket.
-app.ports.sendMessage.subscribe(function(message) {
-    socket.send(message);
-});
 
-// When a message comes into our WebSocket, we pass the message along
-// to the `messageReceiver` port.
-socket.addEventListener("message", function(event) {
-	app.ports.messageReceiver.send(event.data);
-});
-
-// If you want to use a JavaScript library to manage your WebSocket
-// connection, replace the code in JS with the alternate implementation.
-</script>
-
+            usersRef.on('value', function(snapshot){
+              var users = snapshot.val();
+              var entries=((Object.entries(users)).map(([x,y])=>x+"："+y)).join("\n");
+              $('#editingMessage').text(entries);
+            });
+            sendMessageRef.on('value',function(snapshot){
+              var sendMessage=snapshot.val();
+              var entries=(Object.entries(sendMessage)).map(([x,y])=>y).map((x)=>Object.values(x)).join("\n");
+              $('#sendMessage').text(entries);
+            });
+        </script>
+    </body>
 </html>
